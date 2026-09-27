@@ -1,6 +1,21 @@
+# --- Base Setup (Dal README originale) ---
 google-cloud-bigquery
 db-dtypes
 pandas
 jupyter
 ipykernel
 nbstripout
+
+# --- Motore AI & Embeddings ---
+# Necessario per chiamare Gemini via Google Agent Platform
+google-cloud-aiplatform
+# Connettori per semplificare il flusso RAG (DB -> Vettori -> Prompt)
+langchain-google-vertexai
+# Utile per calcolare la Cosine Similarity veloce tra gli embeddings
+scikit-learn
+
+# --- Frontend & Dati ---
+# Per creare la Web App finale da presentare alla giuria
+streamlit
+# Per visualizzare i grafici a candela delle quotazioni
+plotly
