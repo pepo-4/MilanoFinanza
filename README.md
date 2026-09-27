@@ -59,6 +59,50 @@ jupyter lab                                        # oppure apri i notebook da V
 
 Primo test: esegui `notebooks/00_test_bigquery.ipynb` dall'inizio alla fine. Deve stampare dataset, schemi e l'ultima notizia.
 
+## Branch di lavoro
+
+Ognuno lavora sul proprio branch; `main` si aggiorna solo tramite merge/pull request.
+
+| Persona | Branch |
+|---|---|
+| Giuseppe Allocca | `giuseppe-allocca` |
+| Matteo Bottari | `matteo-bottari` |
+| Edoardo Coli | `edoardo-coli` |
+| Jacopo Ferrante | `jacopo-ferrante` |
+| Giuseppe Leogrande | `giuseppe-leogrande` |
+
+### Primo accesso
+
+```bash
+git clone https://github.com/pepo-4/MilanoFinanza.git
+cd MilanoFinanza
+
+# identità git solo per questa repo (usa i tuoi dati)
+git config user.name "Nome Cognome"
+git config user.email "tua@email.it"
+
+# passa al tuo branch (es. matteo-bottari)
+git switch matteo-bottari
+```
+
+Poi completa il [Setup](#setup) (venv, nbstripout, kernel).
+
+### Lavoro quotidiano
+
+```bash
+git switch <tuo-branch>                  # assicurati di essere sul tuo branch
+git branch --show-current                # verifica
+
+git pull                                 # prendi le ultime modifiche del tuo branch
+git merge origin/main                    # (opzionale) porta nel tuo branch le novità di main
+
+git add <file>
+git commit -m "descrizione"
+git push                                 # il branch è già collegato a origin/<tuo-branch>
+```
+
+Se `git switch <tuo-branch>` dice che il branch non esiste, aggiorna prima l'elenco dei branch remoti con `git fetch origin`.
+
 ## Regole d'uso di BigQuery
 
 La quota è limitata e si pagano i **byte letti** (`LIMIT` non riduce il costo). Le regole complete sono in [CLAUDE.md](CLAUDE.md); in breve:
