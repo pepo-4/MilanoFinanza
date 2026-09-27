@@ -1,0 +1,32 @@
+# Ambiente Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Segreti e credenziali
+.env
+.env.*
+*.pem
+*.key
+*credentials*.json
+*service-account*.json
+*service_account*.json
+application_default_credentials.json
+client_secret*.json
+
+# Dati estratti da BigQuery (contenuti protetti Milano Finanza)
+data/
+*.csv
+*.parquet
+*.feather
+*.pkl
+*.xlsx
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store

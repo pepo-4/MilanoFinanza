@@ -1,0 +1,6 @@
+google-cloud-bigquery
+db-dtypes
+pandas
+jupyter
+ipykernel
+nbstripout
