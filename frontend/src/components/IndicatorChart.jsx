@@ -26,7 +26,7 @@ export function currentValue(dates, values, selectedDate) {
   return { value: null, date: null };
 }
 
-export function ZoneBadge({ value, date, pinned, inline = false }) {
+export function ZoneBadge({ value, date, pinned, inline = false, showValue = true }) {
   const shown = value == null ? null : Math.round(value); // categoria e numero mostrato coincidono
   const zone = shown == null ? null : zoneOf(shown);
   return (
@@ -37,7 +37,7 @@ export function ZoneBadge({ value, date, pinned, inline = false }) {
           ? { background: RATING_STYLES[zone.label].bg, borderColor: RATING_STYLES[zone.label].border, color: INK }
           : { background: '#f5f5f5', borderColor: '#cfcfcf', color: MUTED }}
       >
-        {zone ? `${zone.label} · ${shown}` : 'n/d'}
+        {zone ? (showValue ? `${zone.label} · ${shown}` : zone.label) : 'n/d'}
       </span>
       {date && !inline && (
         <span className="text-[10px] text-[#8a8a8a]">
@@ -66,6 +66,8 @@ export function IndicatorChart({
         line: { color, width: 1.8 },
         hovertemplate: '%{x|%d/%m/%Y}<br><b>%{y:.0f}</b><extra></extra>',
       },
+      // Traccia vuota sull'asse di destra, così la scala numerica 0-100 viene disegnata
+      { x: [dates[0]], y: [null], yaxis: 'y2', type: 'scatter', mode: 'lines', hoverinfo: 'skip', showlegend: false },
     ];
 
     // Confini delle fasce Fear & Greed
@@ -81,13 +83,17 @@ export function IndicatorChart({
     const layout = {
       ...baseLayout,
       height,
-      margin: { l: 84, r: 12, t: 8, b: 26 },
+      margin: { l: 84, r: 34, t: 8, b: 26 },
       xaxis: { ...xAxisStyle, range: xRange },
       // A sinistra le fasce della scala, al centro di ciascuna
       yaxis: { range: [0, 100], tickvals: [10, 30, 50, 70, 90],
         ticktext: ['EXTREME FEAR', 'FEAR', 'NEUTRAL', 'GREED', 'EXTREME GREED'],
         tickfont: { size: 9, color: MUTED, family: 'Roboto Condensed, Arial Narrow, sans-serif' },
         ticks: '', showgrid: false, showline: false, zeroline: false, fixedrange: true },
+      // A destra la scala numerica, sui confini delle fasce
+      yaxis2: { overlaying: 'y', side: 'right', range: [0, 100], tickvals: [0, 20, 40, 60, 80, 100],
+        tickfont: { size: 10, color: MUTED }, ticks: '', showgrid: false, showline: false, zeroline: false,
+        fixedrange: true },
       shapes,
       annotations: hasData
         ? []

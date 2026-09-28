@@ -182,7 +182,7 @@ export default function StatPlotlyChart({
     const layout = {
       ...baseLayout,
       height: height,
-      margin: { l: 10, r: 48, t: 34, b: 30 },
+      margin: { l: 34, r: 48, t: 34, b: 30 },
       showlegend: true,
       legend: {
         orientation: 'h',
@@ -195,7 +195,14 @@ export default function StatPlotlyChart({
         itemdoubleclick: false,
       },
       shapes: cursorShapes,
-      annotations: cursorAnnotations,
+      // Etichette a sinistra: cosa mostra il grafico sopra (media) e sotto (barre)
+      annotations: [
+        ...cursorAnnotations,
+        { text: yTitle, xref: 'paper', yref: 'paper', x: 0, xshift: -22, y: 0.63, textangle: -90,
+          showarrow: false, font: { size: 11, color: MUTED } },
+        { text: bottomTitle, xref: 'paper', yref: 'paper', x: 0, xshift: -22, y: 0.1, textangle: -90,
+          showarrow: false, font: { size: 11, color: MUTED } },
+      ],
       // Asse X condiviso
       xaxis: {
         ...xAxisStyle,

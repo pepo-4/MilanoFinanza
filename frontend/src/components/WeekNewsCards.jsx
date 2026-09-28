@@ -18,7 +18,6 @@ export default function WeekNewsCards({ week }) {
     <div className="mb-4">
       <div className="flex items-baseline gap-2 mb-2">
         <h3 className="ed-title text-sm">Notizie della settimana</h3>
-        <span className="ed-sub">{news.length}</span>
       </div>
 
       {news.length === 0 ? (

@@ -19,7 +19,9 @@ import { TrendingUp, Database, ShieldCheck, ChevronDown, Crosshair, X } from 'lu
 export default function App() {
   const [selectedTicker, setSelectedTicker] = useState('UCG.MI');
   const theme = 'light'; // solo tema chiaro
-  const [selectedDate, setSelectedDate] = useState(null); // Data/periodo sincronizzato
+  // Settimana evidenziata all'apertura (venerdì di fine settimana); null = nessuna
+  const DEFAULT_WEEK = '2026-03-20';
+  const [selectedDate, setSelectedDate] = useState(DEFAULT_WEEK); // Data/periodo sincronizzato
   const [syncRange, setSyncRange] = useState(null); // Finestra temporale condivisa
 
   const priceChartContainerRef = useRef(null);
@@ -112,102 +114,36 @@ export default function App() {
          ========================================================================== */}
       <main className="flex-1 w-full max-w-[1600px] mx-auto flex flex-col justify-start">
         {/* Barra superiore: Titolo e Menu Ticker a sinistra, Switch Tema a destra */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 px-1">
-          {/* Sinistra: Titolo in alto e Menu a Tendina Ticker posizionato direttamente al di sotto */}
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <div>
-                <p className="ed-title text-xs text-[#6b6b6b] mb-1">Milano Finanza</p>
-                <h1 className="ed-title text-3xl sm:text-4xl">Fear &amp; Greed · Unicredit</h1>
-                <p className="ed-sub mt-1">Cosa muove il titolo: prezzi e notizie, settimana per settimana.</p>
-              </div>
-            </div>
-
-            {/* Menu a tendina Ticker posizionato sotto al titolo + Badge Ticker Attivo ben visibile */}
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Menu a tendina per la selezione del Ticker */}
-              <div className="relative inline-flex items-center">
-                <select
-                  value={selectedTicker}
-                  onChange={(e) => {
-                    const t = tickersList.find((x) => x.code === e.target.value);
-                    if (!t || t.disabled) return; // titoli non ancora disponibili: nessuna azione
-                    setSelectedTicker(t.code);
-                    setSelectedDate(null);
-                  }}
-                  className={`appearance-none text-xs font-semibold pl-3 pr-8 py-1.5 rounded-full border transition-colors cursor-pointer outline-none ${
-                    isDark
-                      ? 'bg-dark-850 text-slate-100 border-dark-700 hover:border-slate-500 focus:border-trade-accent'
-                      : 'bg-[#f0f0f0] text-[#111111] border-transparent hover:bg-[#e6e6e6]'
-                  }`}
-                >
-                  {tickersList.map((t) => (
-                    <option
-                      key={t.code}
-                      value={t.code}
-                      disabled={t.disabled}
-                      className={isDark ? 'bg-[#0b0f19] text-slate-100' : 'bg-white text-slate-900'}
-                    >
-                      {t.name} ({t.code}){t.disabled ? ' · presto' : ''}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown
-                  size={15}
-                  className={`absolute right-2.5 pointer-events-none ${
-                    isDark ? 'text-slate-400' : 'text-slate-500'
-                  }`}
-                />
-              </div>
-            </div>
+        {/* Barra superiore: titolo a sinistra, selettore del titolo a destra */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6 px-1">
+          <div>
+            <p className="ed-title text-xs text-[#6b6b6b] mb-1">Milano Finanza</p>
+            <h1 className="ed-title text-3xl sm:text-4xl">Fear &amp; Greed · Unicredit</h1>
           </div>
 
-        </div>
-
-        {/* Banner di Correlazione quando un periodo è cliccato/selezionato */}
-        {selectedPointInfo && (
-          <div
-            className="mb-3 py-2.5 border-y border-[#111111] flex flex-wrap items-center justify-between gap-3 text-xs text-[#111111]"
-          >
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="ed-title text-sm flex items-center gap-1.5">
-                <Crosshair size={13} />
-                <span>Settimana al {new Date(selectedPointInfo.date).toLocaleDateString('it-IT')}</span>
-              </span>
-              <span className="text-[#cfcfcf] hidden sm:inline">|</span>
-              <span>
-                <strong className="font-normal text-[#6b6b6b]">Prezzo:</strong> €{selectedPointInfo.priceMean.toFixed(2)} (±{selectedPointInfo.priceStd.toFixed(2)})
-              </span>
-              <span className="text-[#cfcfcf] hidden sm:inline">|</span>
-              <span>
-                <strong className="font-normal text-[#6b6b6b]">Sentiment:</strong>{' '}
-                {selectedPointInfo.sentimentMean == null
-                  ? 'n/d'
-                  : `${selectedPointInfo.sentimentMean > 0 ? '+' : ''}${selectedPointInfo.sentimentMean.toFixed(2)} (±${selectedPointInfo.sentimentStd.toFixed(2)})`}
-              </span>
-              <span className="text-[#cfcfcf] hidden sm:inline">|</span>
-              <span>
-                <strong className="font-normal text-[#6b6b6b]">Notizie:</strong> {selectedPointInfo.newsCount}
-              </span>
-              <span className="text-[#cfcfcf] hidden sm:inline">|</span>
-              <span>
-                <strong className="font-normal text-[#6b6b6b]">Volumi:</strong> {(selectedPointInfo.volume / 1_000_000).toFixed(1)}M
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setSelectedDate(null)}
-              className="flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold bg-[#f0f0f0] text-[#111111] hover:bg-[#e6e6e6] transition-colors"
+          {/* Menu a tendina per la selezione del titolo */}
+          <div className="relative inline-flex items-center">
+            <label htmlFor="ticker-select" className="sr-only">Titolo</label>
+            <select
+              id="ticker-select"
+              value={selectedTicker}
+              onChange={(e) => {
+                const t = tickersList.find((x) => x.code === e.target.value);
+                if (!t || t.disabled) return; // titoli non ancora disponibili: nessuna azione
+                setSelectedTicker(t.code);
+                setSelectedDate(null);
+              }}
+              className="ed-title appearance-none text-xl pl-6 pr-14 py-3 min-w-[320px] rounded-full border border-transparent bg-[#f0f0f0] text-[#111111] hover:bg-[#e6e6e6] transition-colors cursor-pointer outline-none focus:border-[#111111]"
             >
-              <X size={12} />
-              <span>Chiudi</span>
-            </button>
+              {tickersList.map((t) => (
+                <option key={t.code} value={t.code} disabled={t.disabled} className="bg-white text-slate-900">
+                  {t.name} ({t.code}){t.disabled ? ' · presto' : ''}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={22} className="absolute right-5 pointer-events-none text-[#111111]" />
           </div>
-        )}
-
-        {/* Minicard con le notizie della settimana selezionata */}
-        {selectedPointInfo && <WeekNewsCards week={selectedPointInfo.date} />}
+        </div>
 
         {/* Griglia 2 Colonne Simmetriche Affiancate con Sincronizzazione Attiva */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 w-full">
@@ -243,6 +179,51 @@ export default function App() {
             />
           </div>
         </div>
+
+        {/* Settimana selezionata: riepilogo e notizie, sotto i grafici, su fondo chiaro */}
+        {selectedPointInfo && (
+          <div className="mt-6 px-5 py-4 bg-[#f5f5f2] rounded-lg">
+            <div className="pb-3 mb-4 border-b border-[#d9d9d4] flex flex-wrap items-center justify-between gap-3 text-xs text-[#111111]">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="ed-title text-sm flex items-center gap-1.5">
+                  <Crosshair size={13} />
+                  <span>Settimana al {new Date(selectedPointInfo.date).toLocaleDateString('it-IT')}</span>
+                </span>
+                <span className="text-[#cfcfcf] hidden sm:inline">|</span>
+                <span>
+                  <strong className="font-normal text-[#6b6b6b]">Prezzo:</strong> €{selectedPointInfo.priceMean.toFixed(2)}
+                </span>
+                <span className="text-[#cfcfcf] hidden sm:inline">|</span>
+                <span>
+                  <strong className="font-normal text-[#6b6b6b]">Sentiment:</strong>{' '}
+                  {selectedPointInfo.sentimentMean == null
+                    ? 'n/d'
+                    : `${selectedPointInfo.sentimentMean > 0 ? '+' : ''}${selectedPointInfo.sentimentMean.toFixed(2)}`}
+                </span>
+                <span className="text-[#cfcfcf] hidden sm:inline">|</span>
+                <span>
+                  <strong className="font-normal text-[#6b6b6b]">Notizie:</strong> {selectedPointInfo.newsCount}
+                </span>
+                <span className="text-[#cfcfcf] hidden sm:inline">|</span>
+                <span>
+                  <strong className="font-normal text-[#6b6b6b]">Volumi:</strong> {(selectedPointInfo.volume / 1_000_000).toFixed(1)}M
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedDate(null)}
+                className="flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold bg-white text-[#111111] hover:bg-[#e6e6e6] transition-colors"
+              >
+                <X size={12} />
+                <span>Chiudi</span>
+              </button>
+            </div>
+
+            {/* Minicard con le notizie della settimana selezionata */}
+            <WeekNewsCards week={selectedPointInfo.date} />
+          </div>
+        )}
 
         {/* Separatore tra i grafici principali e gli indicatori */}
         <hr className="ed-rule" />

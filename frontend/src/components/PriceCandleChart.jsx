@@ -29,7 +29,6 @@ export default function PriceCandleChart({
   return (
     <StatPlotlyChart
       title="Prezzo"
-      subtitle="Media settimanale delle chiusure (€) ± 1σ · barre: volumi"
       dates={dates}
       meanValues={price.mean}
       stdValues={price.std}
@@ -37,7 +36,7 @@ export default function PriceCandleChart({
       lowerValues={price.lower}
       bottomValues={price.volume}
       bottomColors={volumeColors}
-      yTitle="Prezzo (€)"
+      yTitle="Media settimanale (€)"
       bottomTitle="Volumi"
       yRange={[minPrice, maxPrice]}
       autoY

@@ -25,8 +25,7 @@ export default function SentimentCandleChart({
 
   return (
     <StatPlotlyChart
-      title="Sentiment notizie"
-      subtitle="Score medio settimanale (Gemini, da −1 a +1) ± 1σ · barre: notizie con score"
+      title="Sentiment"
       dates={dates}
       meanValues={sentiment.mean}
       stdValues={sentiment.std}
@@ -34,7 +33,7 @@ export default function SentimentCandleChart({
       lowerValues={sentiment.lower}
       bottomValues={sentiment.newsCount}
       bottomColors={newsColors}
-      yTitle="Sentiment (-1 ... +1)"
+      yTitle="Sentiment medio (−1 / +1)"
       bottomTitle="Notizie"
       yRange={[-1.05, 1.05]}
       meanLabel="Media"
