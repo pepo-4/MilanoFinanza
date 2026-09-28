@@ -235,9 +235,7 @@ export default function StatPlotlyChart({
 
     const config = {
       responsive: true,
-      displayModeBar: true,
-      displaylogo: false,
-      modeBarButtonsToRemove: ['select2d', 'lasso2d'],
+      displayModeBar: false,
     };
 
     Plotly.newPlot(containerRef.current, data, layout, config).then(() => {
