@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import StatPlotlyChart from './StatPlotlyChart';
 import { DATASETS } from '../data/weeklyData';
 
@@ -17,21 +17,29 @@ export default function SentimentCandleChart({
   const currentDataset = DATASETS[ticker] || DATASETS['UCG.MI'];
   const { dates, sentiment } = currentDataset;
 
+  // Barre verdi se lo score medio è salito rispetto alla settimana prima, rosse se è sceso
+  const newsColors = useMemo(
+    () => sentiment.direction.map((d) => (d == null ? '#94a3b8' : d < 0 ? '#dc2626' : '#16a34a')),
+    [sentiment.direction]
+  );
+
   return (
     <StatPlotlyChart
-      title={`${instrumentName} · sentiment settimanale delle notizie (gemini-3-flash-preview)`}
+      title="Sentiment notizie"
+      subtitle="Score medio settimanale (Gemini, da −1 a +1) ± 1σ · barre: notizie con score"
       dates={dates}
       meanValues={sentiment.mean}
       stdValues={sentiment.std}
       upperValues={sentiment.upper}
       lowerValues={sentiment.lower}
       bottomValues={sentiment.newsCount}
+      bottomColors={newsColors}
       yTitle="Sentiment (-1 ... +1)"
       bottomTitle="Notizie"
       yRange={[-1.05, 1.05]}
-      meanLabel="Media settimanale"
-      color={theme === 'dark' ? '#2563eb' : '#1d4ed8'}
-      bandColor={theme === 'dark' ? 'rgba(56, 189, 248, 0.20)' : 'rgba(59, 130, 246, 0.16)'}
+      meanLabel="Media"
+      color="#eb6834"
+      bandColor="rgba(235, 104, 52, 0.18)"
       height={height}
       theme={theme}
       selectedDate={selectedDate}

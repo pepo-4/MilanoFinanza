@@ -1,17 +1,77 @@
 import React, { useEffect, useRef } from 'react';
 import Plotly from 'plotly.js-dist-min';
+import { baseLayout, xAxisStyle, yAxisStyle, INK, MUTED } from '../theme';
+
+// Finestre temporali disponibili (in mesi); la prima vista è 1 anno
+const RANGE_MONTHS = { '6M': 6, '1A': 12, '2A': 24 };
+const DEFAULT_MONTHS = 12;
+
+const toDate = (v) => new Date(String(v).replace(' ', 'T'));
+
+export function defaultRange(dates, months = DEFAULT_MONTHS) {
+  const end = toDate(dates[dates.length - 1]);
+  const start = new Date(end);
+  start.setMonth(start.getMonth() - months);
+  return [start.toISOString().slice(0, 10), dates[dates.length - 1]];
+}
+
+// Fascia ±1σ come poligoni separati per ogni tratto senza buchi (niente riempimenti in diagonale)
+function bandPolygon(dates, upper, lower) {
+  const x = [];
+  const y = [];
+  let seg = [];
+  const flush = () => {
+    if (seg.length) {
+      seg.forEach((i) => { x.push(dates[i]); y.push(upper[i]); });
+      [...seg].reverse().forEach((i) => { x.push(dates[i]); y.push(lower[i]); });
+      x.push(null);
+      y.push(null);
+    }
+    seg = [];
+  };
+  dates.forEach((_, i) => {
+    if (upper[i] == null || lower[i] == null) flush();
+    else seg.push(i);
+  });
+  flush();
+  return { x, y };
+}
+
+// Range Y adattato ai dati visibili nella finestra [x0, x1]
+function visibleRange(dates, series, x0, x1, pad = 0.08) {
+  const a = toDate(x0);
+  const b = toDate(x1);
+  let lo = Infinity;
+  let hi = -Infinity;
+  dates.forEach((d, i) => {
+    const t = toDate(d);
+    if (t < a || t > b) return;
+    series.forEach((s) => {
+      const v = s[i];
+      if (v == null) return;
+      lo = Math.min(lo, v);
+      hi = Math.max(hi, v);
+    });
+  });
+  if (!Number.isFinite(lo)) return null;
+  const span = hi - lo || Math.abs(hi) || 1;
+  return [lo - span * pad, hi + span * pad];
+}
 
 export default function StatPlotlyChart({
-  title = 'Unicredit · sentiment settimanale delle notizie (gemini-3-flash-preview)',
+  title = 'Sentiment',
+  subtitle = '',
   dates = [],
   meanValues = [],
   stdValues = [],
   upperValues = [],
   lowerValues = [],
   bottomValues = [], // Notizie o Volumi
+  bottomColors = null, // colore per ogni barra (es. verde/rosso in base al prezzo); null = grigio
   yTitle = 'Sentiment (-1 ... +1)',
   bottomTitle = 'Notizie',
   yRange = [-1.05, 1.05],
+  autoY = false, // true: asse Y adattato alla finestra visibile (es. prezzi)
   meanLabel = 'Media settimanale',
   color = '#2563eb', // colore linea media
   bandColor, // colore banda ±1σ
@@ -27,52 +87,26 @@ export default function StatPlotlyChart({
   const internalRef = useRef(null);
   const containerRef = externalRef || internalRef;
   const isInternalRelayout = useRef(false);
+  const fitYRef = useRef(null);
   const isDark = theme === 'dark';
 
   useEffect(() => {
     if (!containerRef.current || !dates.length) return;
 
-    // Palette dinamica in base al tema Dark / Light
-    const paperBg = isDark ? '#070a12' : '#ffffff';
-    const plotBg = isDark ? '#070a12' : '#ffffff';
-    const textColor = isDark ? '#94a3b8' : '#475569';
-    const titleColor = isDark ? '#e2e8f0' : '#0f172a';
-    const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.06)';
-    const axisLineColor = isDark ? '#1e293b' : '#cbd5e1';
-    const zeroLineColor = isDark ? 'rgba(255, 255, 255, 0.20)' : 'rgba(0, 0, 0, 0.25)';
-    const rangeBtnBg = isDark ? '#111827' : '#f1f5f9';
-    const rangeBtnActive = isDark ? '#1f293d' : '#e2e8f0';
-    const rangeBtnBorder = isDark ? '#1f2937' : '#cbd5e1';
-    const rangeBtnText = isDark ? '#cbd5e1' : '#334155';
-    const hoverBg = isDark ? '#0f172a' : '#ffffff';
-    const hoverBorder = isDark ? '#334155' : '#cbd5e1';
-    const hoverText = isDark ? '#f8fafc' : '#0f172a';
-    const actualBandColor = bandColor || (isDark ? 'rgba(56, 189, 248, 0.20)' : 'rgba(59, 130, 246, 0.16)');
-    const barColor = isDark ? '#64748b' : '#71717a';
+    const actualBandColor = bandColor || 'rgba(42, 120, 214, 0.18)';
+    const barColor = '#b5b5b5';
 
-    // Traccia 1: Bordo Superiore Banda (+1 deviazione standard) - invisibile
-    const traceUpper = {
-      x: dates,
-      y: upperValues,
+    // Traccia 1: Banda ±1 deviazione standard (poligono chiuso per ogni tratto continuo)
+    const band = bandPolygon(dates, upperValues, lowerValues);
+    const traceBand = {
+      x: band.x,
+      y: band.y,
       type: 'scatter',
       mode: 'lines',
       line: { color: 'transparent', width: 0 },
-      showlegend: false,
-      hoverinfo: 'skip',
-      xaxis: 'x',
-      yaxis: 'y',
-    };
-
-    // Traccia 2: Bordo Inferiore Banda (-1 deviazione standard) con riempimento verso la precedente
-    const traceLower = {
-      x: dates,
-      y: lowerValues,
-      type: 'scatter',
-      mode: 'lines',
-      line: { color: 'transparent', width: 0 },
-      fill: 'tonexty',
+      fill: 'toself',
       fillcolor: actualBandColor,
-      name: '± 1 deviazione standard',
+      name: '± 1σ',
       hoverinfo: 'skip',
       xaxis: 'x',
       yaxis: 'y',
@@ -99,7 +133,7 @@ export default function StatPlotlyChart({
       x: dates,
       y: bottomValues,
       type: 'bar',
-      marker: { color: barColor },
+      marker: { color: bottomColors || barColor },
       name: bottomTitle,
       hovertemplate: `${bottomTitle}: %{y}<extra></extra>`,
       xaxis: 'x',
@@ -107,7 +141,9 @@ export default function StatPlotlyChart({
       showlegend: false,
     };
 
-    const data = [traceUpper, traceLower, traceMean, traceBottom];
+    // L'indice 1 (media) è usato per sincronizzare l'hover tra i due grafici
+    const data = [traceBand, traceMean, traceBottom];
+    const xRange = syncRange || defaultRange(dates);
 
     // Cursore/Linea sincronizzata se un periodo è stato premuto
     const cursorShapes = selectedDate
@@ -120,11 +156,7 @@ export default function StatPlotlyChart({
             x1: selectedDate,
             y0: 0,
             y1: 1,
-            line: {
-              color: isDark ? '#38bdf8' : '#2563eb',
-              width: 2,
-              dash: 'dot',
-            },
+            line: { color: INK, width: 1, dash: 'dot' },
           },
         ]
       : [];
@@ -135,101 +167,73 @@ export default function StatPlotlyChart({
             x: selectedDate,
             y: 0.99,
             yref: 'paper',
-            text: `📍 ${selectedDate}`,
+            text: new Date(selectedDate).toLocaleDateString('it-IT'),
             showarrow: false,
-            font: {
-              size: 10,
-              color: isDark ? '#38bdf8' : '#2563eb',
-              family: 'JetBrains Mono, monospace',
-            },
-            bgcolor: isDark ? '#0f172a' : '#ffffff',
-            bordercolor: isDark ? '#334155' : '#cbd5e1',
-            borderwidth: 1,
-            borderpad: 2,
+            font: { size: 10, color: '#ffffff' },
+            bgcolor: INK,
+            borderpad: 3,
             xanchor: 'center',
             yanchor: 'bottom',
           },
         ]
       : [];
 
-    // Layout Plotly con supporto Light / Dark mode e Cursore Sincronizzato
+    // Layout: stile editoriale condiviso (theme.js), legenda in alto a sinistra, scale a destra
     const layout = {
-      title: {
-        text: title,
-        font: { color: titleColor, size: 13, family: 'Plus Jakarta Sans, sans-serif' },
-        x: 0.01,
-        y: 0.98,
-        xanchor: 'left',
-      },
-      paper_bgcolor: paperBg,
-      plot_bgcolor: plotBg,
-      font: { color: textColor, family: 'Plus Jakarta Sans, monospace', size: 11 },
+      ...baseLayout,
       height: height,
-      margin: { l: 55, r: 25, t: 45, b: 35 },
+      margin: { l: 10, r: 48, t: 34, b: 30 },
       showlegend: true,
       legend: {
         orientation: 'h',
-        x: 1,
-        y: 1.08,
-        xanchor: 'right',
-        font: { size: 11, color: textColor },
+        x: 0,
+        y: 1.1,
+        xanchor: 'left',
+        font: { size: 11, color: MUTED },
         bgcolor: 'transparent',
-      },
-      hovermode: 'x unified',
-      hoverlabel: {
-        bgcolor: hoverBg,
-        bordercolor: hoverBorder,
-        font: { color: hoverText, size: 11, family: 'JetBrains Mono, monospace' },
+        itemclick: false,
+        itemdoubleclick: false,
       },
       shapes: cursorShapes,
       annotations: cursorAnnotations,
       // Asse X condiviso
       xaxis: {
+        ...xAxisStyle,
         domain: [0, 1],
         anchor: 'y2',
-        gridcolor: gridColor,
-        linecolor: axisLineColor,
-        zerolinecolor: gridColor,
-        showspikes: true,
-        spikemode: 'across',
-        spikedash: 'dot',
-        spikethickness: 1,
-        spikecolor: textColor,
+        range: xRange,
         rangeselector: {
-          buttons: [
-            { count: 6, label: '6M', step: 'month', stepmode: 'backward' },
-            { count: 1, label: '1A', step: 'year', stepmode: 'backward' },
-            { count: 2, label: '2A', step: 'year', stepmode: 'backward' },
-            { step: 'all', label: 'Tutto' },
-          ],
-          bgcolor: rangeBtnBg,
-          activecolor: rangeBtnActive,
-          bordercolor: rangeBtnBorder,
-          borderwidth: 1,
-          font: { color: rangeBtnText, size: 10 },
-          x: 0.01,
-          y: 0.92,
+          buttons: Object.entries(RANGE_MONTHS).map(([label, count]) => ({
+            count,
+            label,
+            step: 'month',
+            stepmode: 'backward',
+          })),
+          bgcolor: '#f0f0f0',
+          activecolor: '#ffffff',
+          bordercolor: '#f0f0f0',
+          borderwidth: 2,
+          font: { color: INK, size: 11 },
+          x: 1,
+          xanchor: 'right',
+          y: 1.1,
         },
       },
       // Asse Y principale (grafico superiore)
       yaxis: {
-        domain: [0.30, 0.88],
-        title: { text: yTitle, font: { size: 11, color: textColor } },
-        range: yRange,
-        gridcolor: gridColor,
-        linecolor: axisLineColor,
-        zeroline: true,
-        zerolinecolor: zeroLineColor,
-        zerolinedash: 'dash',
+        ...yAxisStyle,
+        domain: [0.3, 0.96],
+        range: autoY ? visibleRange(dates, [upperValues, lowerValues, meanValues], ...xRange) || yRange : yRange,
+        zeroline: !autoY,
+        zerolinecolor: '#9a9a9a',
         zerolinewidth: 1,
       },
       // Asse Y secondario (grafico inferiore delle notizie/volumi)
       yaxis2: {
-        domain: [0, 0.22],
-        title: { text: bottomTitle, font: { size: 11, color: textColor } },
-        gridcolor: gridColor,
-        linecolor: axisLineColor,
-        zerolinecolor: gridColor,
+        ...yAxisStyle,
+        domain: [0, 0.2],
+        range: [0, (visibleRange(dates, [bottomValues], ...xRange, 0)?.[1] || 1) * 1.1],
+        nticks: 3,
       },
     };
 
@@ -237,6 +241,21 @@ export default function StatPlotlyChart({
       responsive: true,
       displayModeBar: false,
     };
+
+    // Adatta gli assi Y (prezzo e barre) alla finestra visibile
+    const fitY = (range) => {
+      const el = containerRef.current;
+      if (!el) return;
+      const update = {};
+      if (autoY) {
+        const yr = visibleRange(dates, [upperValues, lowerValues, meanValues], ...range);
+        if (yr) update['yaxis.range'] = yr;
+      }
+      const br = visibleRange(dates, [bottomValues], ...range, 0);
+      if (br) update['yaxis2.range'] = [0, br[1] * 1.1];
+      if (Object.keys(update).length) Plotly.relayout(el, update).catch(() => {});
+    };
+    fitYRef.current = fitY;
 
     Plotly.newPlot(containerRef.current, data, layout, config).then(() => {
       const el = containerRef.current;
@@ -248,7 +267,7 @@ export default function StatPlotlyChart({
           const pt = eventData.points[0];
           try {
             Plotly.Fx.hover(syncTargetRef.current, [
-              { curveNumber: 2, pointNumber: pt.pointNumber },
+              { curveNumber: 1, pointNumber: pt.pointNumber },
             ]);
           } catch (e) {
             // Ignora eventuali micro-errori durante il drag
@@ -273,15 +292,19 @@ export default function StatPlotlyChart({
         }
       });
 
-      // Evento Relayout: sincronizza la finestra temporale (6M, 1A, Zoom) con l'altro grafico
+      // Evento Relayout: adatta gli assi Y e sincronizza la finestra temporale con l'altro grafico
       el.on('plotly_relayout', (eventData) => {
-        if (onRangeChange && !isInternalRelayout.current) {
-          if (eventData['xaxis.range[0]'] && eventData['xaxis.range[1]']) {
-            onRangeChange([eventData['xaxis.range[0]'], eventData['xaxis.range[1]']]);
-          } else if (eventData['xaxis.autorange']) {
-            onRangeChange(null);
-          }
+        let range = null;
+        if (eventData['xaxis.range[0]'] && eventData['xaxis.range[1]']) {
+          range = [eventData['xaxis.range[0]'], eventData['xaxis.range[1]']];
+        } else if (Array.isArray(eventData['xaxis.range'])) {
+          range = eventData['xaxis.range'];
+        } else if (eventData['xaxis.autorange']) {
+          range = [dates[0], dates[dates.length - 1]]; // doppio clic: tutta la serie
         }
+        if (!range) return;
+        fitY(range);
+        if (onRangeChange && !isInternalRelayout.current) onRangeChange(range);
       });
     });
 
@@ -307,9 +330,11 @@ export default function StatPlotlyChart({
     upperValues,
     lowerValues,
     bottomValues,
+    bottomColors,
     yTitle,
     bottomTitle,
     yRange,
+    autoY,
     meanLabel,
     color,
     bandColor,
@@ -329,6 +354,7 @@ export default function StatPlotlyChart({
       })
         .then(() => {
           isInternalRelayout.current = false;
+          fitYRef.current?.(syncRange);
         })
         .catch(() => {
           isInternalRelayout.current = false;
@@ -337,13 +363,9 @@ export default function StatPlotlyChart({
   }, [syncRange]);
 
   return (
-    <div
-      className={`border rounded-xl p-2.5 shadow-xl w-full transition-colors duration-200 ${
-        isDark
-          ? 'bg-[#070a12] border-dark-750/80 shadow-black/40'
-          : 'bg-white border-slate-200 shadow-slate-200/60'
-      }`}
-    >
+    <div className="ed-panel w-full">
+      <h3 className="ed-title text-lg">{title}</h3>
+      {subtitle && <p className="ed-sub">{subtitle}</p>}
       <div ref={containerRef} className="w-full" style={{ minHeight: `${height}px` }} />
     </div>
   );

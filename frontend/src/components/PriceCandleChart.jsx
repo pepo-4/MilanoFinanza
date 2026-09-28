@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import StatPlotlyChart from './StatPlotlyChart';
 import { DATASETS } from '../data/weeklyData';
 
@@ -17,24 +17,33 @@ export default function PriceCandleChart({
   const currentDataset = DATASETS[ticker] || DATASETS['UCG.MI'];
   const { dates, price } = currentDataset;
 
+  // Volume verde se la chiusura settimanale è salita, rosso se è scesa (grigio la prima settimana)
+  const volumeColors = useMemo(
+    () => price.direction.map((d) => (d == null ? '#94a3b8' : d < 0 ? '#dc2626' : '#16a34a')),
+    [price.direction]
+  );
+
   const minPrice = Math.max(0, Math.floor(Math.min(...price.lower) * 0.9));
-  const maxPrice = Math.ceil(Math.max(...price.upper) * 1.1);
+  const maxPrice = Math.ceil(Math.max(...price.upper) * 1.1);  // usato solo se non ci sono dati visibili
 
   return (
     <StatPlotlyChart
-      title={`${instrumentName} · quotazioni settimanali`}
+      title="Prezzo"
+      subtitle="Media settimanale delle chiusure (€) ± 1σ · barre: volumi"
       dates={dates}
       meanValues={price.mean}
       stdValues={price.std}
       upperValues={price.upper}
       lowerValues={price.lower}
       bottomValues={price.volume}
+      bottomColors={volumeColors}
       yTitle="Prezzo (€)"
       bottomTitle="Volumi"
       yRange={[minPrice, maxPrice]}
-      meanLabel="Media settimanale"
-      color={theme === 'dark' ? '#38bdf8' : '#0284c7'}
-      bandColor={theme === 'dark' ? 'rgba(56, 189, 248, 0.18)' : 'rgba(2, 132, 199, 0.16)'}
+      autoY
+      meanLabel="Media"
+      color="#2a78d6"
+      bandColor="rgba(42, 120, 214, 0.18)"
       height={height}
       theme={theme}
       selectedDate={selectedDate}

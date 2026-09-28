@@ -4,6 +4,9 @@ import TopMetrics from './components/TopMetrics';
 import NewsPanel from './components/NewsPanel';
 import PriceCandleChart from './components/PriceCandleChart';
 import SentimentCandleChart from './components/SentimentCandleChart';
+import IndicatorGrid from './components/IndicatorGrid';
+import WeekNewsCards from './components/WeekNewsCards';
+import CorrelationCharts from './components/CorrelationCharts';
 import {
   PRICE_CANDLES_DATA,
   SENTIMENT_CANDLES_DATA,
@@ -11,32 +14,29 @@ import {
   RECENT_NEWS,
 } from './data/mockData';
 import { DATASETS } from './data/weeklyData';
-import { TrendingUp, Database, ShieldCheck, Sun, Moon, ChevronDown, Crosshair, X } from 'lucide-react';
+import { TrendingUp, Database, ShieldCheck, ChevronDown, Crosshair, X } from 'lucide-react';
 
 export default function App() {
   const [selectedTicker, setSelectedTicker] = useState('UCG.MI');
-  const [theme, setTheme] = useState('dark'); // 'dark' | 'light'
+  const theme = 'light'; // solo tema chiaro
   const [selectedDate, setSelectedDate] = useState(null); // Data/periodo sincronizzato
   const [syncRange, setSyncRange] = useState(null); // Finestra temporale condivisa
 
   const priceChartContainerRef = useRef(null);
   const sentimentChartContainerRef = useRef(null);
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
-
   // Flag per disattivare temporaneamente Header e Sezione Dati senza eliminarli
   const SHOW_HEADER = false;
   const SHOW_TOP_METRICS = false;
 
   const tickersList = [
+    // Per ora si lavora solo su Unicredit: gli altri titoli sono visibili ma non selezionabili
     { code: 'UCG.MI', name: 'Unicredit' },
-    { code: 'ENI.MI', name: 'Eni S.p.A.' },
-    { code: 'ISP.MI', name: 'Intesa Sanpaolo' },
-    { code: 'RACE.MI', name: 'Ferrari N.V.' },
-    { code: 'ENEL.MI', name: 'Enel S.p.A.' },
-    { code: 'STLAM.MI', name: 'Stellantis N.V.' },
+    { code: 'ENI.MI', name: 'Eni S.p.A.', disabled: true },
+    { code: 'ISP.MI', name: 'Intesa Sanpaolo', disabled: true },
+    { code: 'RACE.MI', name: 'Ferrari N.V.', disabled: true },
+    { code: 'ENEL.MI', name: 'Enel S.p.A.', disabled: true },
+    { code: 'STLAM.MI', name: 'Stellantis N.V.', disabled: true },
   ];
 
   const activeInstrument =
@@ -63,7 +63,7 @@ export default function App() {
   return (
     <div
       className={`min-h-screen flex flex-col p-4 sm:p-6 transition-colors duration-200 ${
-        isDark ? 'bg-[#070a12] text-slate-100' : 'bg-[#f8fafc] text-slate-800'
+        isDark ? 'bg-[#070a12] text-slate-100' : 'bg-white text-[#111111]'
       }`}
     >
       {/* ==========================================================================
@@ -110,28 +110,17 @@ export default function App() {
       {/* ==========================================================================
           I DUE GRAFICI AFFIANCATI CON CONTROLLI SULLA DESTRA E SINCRONIZZAZIONE
          ========================================================================== */}
-      <main className="flex-1 w-full max-w-[1780px] mx-auto flex flex-col justify-center">
+      <main className="flex-1 w-full max-w-[1600px] mx-auto flex flex-col justify-start">
         {/* Barra superiore: Titolo e Menu Ticker a sinistra, Switch Tema a destra */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 px-1">
           {/* Sinistra: Titolo in alto e Menu a Tendina Ticker posizionato direttamente al di sotto */}
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-3">
-              <h1
-                className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${
-                  isDark ? 'text-white' : 'text-slate-900'
-                }`}
-              >
-                Chart Comparison{' '}
-                <span className="text-trade-accent font-black">·</span>{' '}
-                <span className={isDark ? 'text-slate-200' : 'text-slate-800'}>
-                  Milano Finanza
-                </span>
-              </h1>
-              {selectedDate && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-semibold rounded-lg bg-trade-accent/10 text-trade-accent border border-trade-accent/30 shadow-sm">
-                  <Crosshair size={13} /> Cursore sincronizzato
-                </span>
-              )}
+              <div>
+                <p className="ed-title text-xs text-[#6b6b6b] mb-1">Milano Finanza</p>
+                <h1 className="ed-title text-3xl sm:text-4xl">Fear &amp; Greed · Unicredit</h1>
+                <p className="ed-sub mt-1">Cosa muove il titolo: prezzi e notizie, settimana per settimana.</p>
+              </div>
             </div>
 
             {/* Menu a tendina Ticker posizionato sotto al titolo + Badge Ticker Attivo ben visibile */}
@@ -141,22 +130,25 @@ export default function App() {
                 <select
                   value={selectedTicker}
                   onChange={(e) => {
-                    setSelectedTicker(e.target.value);
+                    const t = tickersList.find((x) => x.code === e.target.value);
+                    if (!t || t.disabled) return; // titoli non ancora disponibili: nessuna azione
+                    setSelectedTicker(t.code);
                     setSelectedDate(null);
                   }}
-                  className={`appearance-none text-xs font-mono font-bold pl-3 pr-8 py-2 rounded-xl border transition-all cursor-pointer outline-none shadow-sm ${
+                  className={`appearance-none text-xs font-semibold pl-3 pr-8 py-1.5 rounded-full border transition-colors cursor-pointer outline-none ${
                     isDark
                       ? 'bg-dark-850 text-slate-100 border-dark-700 hover:border-slate-500 focus:border-trade-accent'
-                      : 'bg-white text-slate-900 border-slate-300 hover:border-slate-400 focus:border-blue-600'
+                      : 'bg-[#f0f0f0] text-[#111111] border-transparent hover:bg-[#e6e6e6]'
                   }`}
                 >
                   {tickersList.map((t) => (
                     <option
                       key={t.code}
                       value={t.code}
+                      disabled={t.disabled}
                       className={isDark ? 'bg-[#0b0f19] text-slate-100' : 'bg-white text-slate-900'}
                     >
-                      {t.name} ({t.code})
+                      {t.name} ({t.code}){t.disabled ? ' · presto' : ''}
                     </option>
                   ))}
                 </select>
@@ -170,79 +162,52 @@ export default function App() {
             </div>
           </div>
 
-          {/* Destra: Switch Light / Dark Mode */}
-          <div className="flex items-center self-start sm:self-center">
-            <button
-              type="button"
-              onClick={toggleTheme}
-              title={isDark ? 'Attiva Tema Chiaro' : 'Attiva Tema Scuro'}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono font-semibold border transition-all ${
-                isDark
-                  ? 'bg-dark-850 text-amber-400 border-dark-700 hover:bg-dark-750 hover:border-dark-600'
-                  : 'bg-white text-indigo-600 border-slate-300 hover:bg-slate-50 hover:border-slate-400 shadow-sm'
-              }`}
-            >
-              {isDark ? (
-                <>
-                  <Sun size={15} className="text-amber-400" />
-                  <span className="text-slate-300 text-xs">Light Mode</span>
-                </>
-              ) : (
-                <>
-                  <Moon size={15} className="text-indigo-600" />
-                  <span className="text-slate-700 text-xs">Dark Mode</span>
-                </>
-              )}
-            </button>
-          </div>
         </div>
 
         {/* Banner di Correlazione quando un periodo è cliccato/selezionato */}
         {selectedPointInfo && (
           <div
-            className={`mb-3.5 px-3.5 py-2 rounded-xl border flex flex-wrap items-center justify-between gap-3 text-xs font-mono transition-all animate-fadeIn ${
-              isDark
-                ? 'bg-dark-850/95 border-trade-accent/40 text-slate-200 shadow-lg shadow-black/40'
-                : 'bg-blue-50/90 border-blue-200 text-blue-950 shadow-sm'
-            }`}
+            className="mb-3 py-2.5 border-y border-[#111111] flex flex-wrap items-center justify-between gap-3 text-xs text-[#111111]"
           >
             <div className="flex flex-wrap items-center gap-3">
-              <span className="font-bold flex items-center gap-1.5 text-trade-accent">
+              <span className="ed-title text-sm flex items-center gap-1.5">
                 <Crosshair size={13} />
-                <span>Periodo: Settimana al {new Date(selectedPointInfo.date).toLocaleDateString('it-IT')}</span>
+                <span>Settimana al {new Date(selectedPointInfo.date).toLocaleDateString('it-IT')}</span>
               </span>
-              <span className="text-slate-400 hidden sm:inline">|</span>
+              <span className="text-[#cfcfcf] hidden sm:inline">|</span>
               <span>
-                <strong className={isDark ? 'text-slate-300' : 'text-slate-700'}>Prezzo:</strong> €{selectedPointInfo.priceMean.toFixed(2)} (±{selectedPointInfo.priceStd.toFixed(2)})
+                <strong className="font-normal text-[#6b6b6b]">Prezzo:</strong> €{selectedPointInfo.priceMean.toFixed(2)} (±{selectedPointInfo.priceStd.toFixed(2)})
               </span>
-              <span className="text-slate-400 hidden sm:inline">|</span>
+              <span className="text-[#cfcfcf] hidden sm:inline">|</span>
               <span>
-                <strong className={isDark ? 'text-slate-300' : 'text-slate-700'}>Sentiment:</strong> {selectedPointInfo.sentimentMean > 0 ? '+' : ''}{selectedPointInfo.sentimentMean.toFixed(2)} (±{selectedPointInfo.sentimentStd.toFixed(2)})
+                <strong className="font-normal text-[#6b6b6b]">Sentiment:</strong>{' '}
+                {selectedPointInfo.sentimentMean == null
+                  ? 'n/d'
+                  : `${selectedPointInfo.sentimentMean > 0 ? '+' : ''}${selectedPointInfo.sentimentMean.toFixed(2)} (±${selectedPointInfo.sentimentStd.toFixed(2)})`}
               </span>
-              <span className="text-slate-400 hidden sm:inline">|</span>
+              <span className="text-[#cfcfcf] hidden sm:inline">|</span>
               <span>
-                <strong className={isDark ? 'text-slate-300' : 'text-slate-700'}>Notizie:</strong> {selectedPointInfo.newsCount}
+                <strong className="font-normal text-[#6b6b6b]">Notizie:</strong> {selectedPointInfo.newsCount}
               </span>
-              <span className="text-slate-400 hidden sm:inline">|</span>
+              <span className="text-[#cfcfcf] hidden sm:inline">|</span>
               <span>
-                <strong className={isDark ? 'text-slate-300' : 'text-slate-700'}>Volumi:</strong> {(selectedPointInfo.volume / 1_000_000).toFixed(1)}M
+                <strong className="font-normal text-[#6b6b6b]">Volumi:</strong> {(selectedPointInfo.volume / 1_000_000).toFixed(1)}M
               </span>
             </div>
 
             <button
               type="button"
               onClick={() => setSelectedDate(null)}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-all ${
-                isDark
-                  ? 'bg-dark-750 text-slate-300 border-dark-600 hover:text-white hover:border-trade-accent'
-                  : 'bg-white text-slate-600 border-slate-300 hover:text-slate-900 shadow-sm'
-              }`}
+              className="flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold bg-[#f0f0f0] text-[#111111] hover:bg-[#e6e6e6] transition-colors"
             >
               <X size={12} />
-              <span>Rimuovi cursore</span>
+              <span>Chiudi</span>
             </button>
           </div>
         )}
+
+        {/* Minicard con le notizie della settimana selezionata */}
+        {selectedPointInfo && <WeekNewsCards week={selectedPointInfo.date} />}
 
         {/* Griglia 2 Colonne Simmetriche Affiancate con Sincronizzazione Attiva */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 w-full">
@@ -278,6 +243,28 @@ export default function App() {
             />
           </div>
         </div>
+
+        {/* Separatore tra i grafici principali e gli indicatori */}
+        <hr className="ed-rule" />
+
+        {/* Griglia 4 x 2: stessi indicatori per prezzi (sinistra) e notizie (destra) */}
+        <IndicatorGrid
+          ticker={selectedTicker}
+          syncRange={syncRange}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+        />
+
+        {/* Separatore tra gli indicatori e le correlazioni */}
+        <hr className="ed-rule" />
+
+        {/* Correlazioni mobili a tutta larghezza */}
+        <CorrelationCharts
+          ticker={selectedTicker}
+          syncRange={syncRange}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+        />
       </main>
     </div>
   );

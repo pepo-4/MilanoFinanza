@@ -26,7 +26,8 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Plus Jakarta Sans', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        condensed: ['Roboto Condensed', 'Arial Narrow', 'sans-serif'],
         mono: ['JetBrains Mono', 'Consolas', 'monospace'],
       }
     },
