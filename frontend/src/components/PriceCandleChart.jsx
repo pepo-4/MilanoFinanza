@@ -6,6 +6,13 @@ export default function PriceCandleChart({
   ticker = 'UCG.MI',
   instrumentName = 'Unicredit',
   height = 420,
+  theme = 'dark',
+  selectedDate = null,
+  onSelectDate = null,
+  syncTargetRef = null,
+  syncRange = null,
+  onRangeChange = null,
+  chartContainerRef = null,
 }) {
   const currentDataset = DATASETS[ticker] || DATASETS['UCG.MI'];
   const { dates, price } = currentDataset;
@@ -26,9 +33,16 @@ export default function PriceCandleChart({
       bottomTitle="Volumi"
       yRange={[minPrice, maxPrice]}
       meanLabel="Media settimanale"
-      color="#38bdf8"
-      bandColor="rgba(56, 189, 248, 0.18)"
+      color={theme === 'dark' ? '#38bdf8' : '#0284c7'}
+      bandColor={theme === 'dark' ? 'rgba(56, 189, 248, 0.18)' : 'rgba(2, 132, 199, 0.16)'}
       height={height}
+      theme={theme}
+      selectedDate={selectedDate}
+      onSelectDate={onSelectDate}
+      syncTargetRef={syncTargetRef}
+      syncRange={syncRange}
+      onRangeChange={onRangeChange}
+      externalRef={chartContainerRef}
     />
   );
 }
