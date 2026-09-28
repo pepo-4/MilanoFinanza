@@ -1,39 +1,36 @@
-# Milano Finanza · Dashboard Frontend (React + Vite)
+# Milano Finanza · Alpha Terminal (React + Vite + Tailwind CSS)
 
-Frontend web sviluppato per l'hackathon Milano Finanza (progetto `class-hackaton-12`).
-Progettato per visualizzare serie storiche di quotazioni, feed notizie con sentiment analysis e metriche calcolate su dati locali.
+Dashboard finanziaria modulare sviluppata per l'hackathon Milano Finanza (progetto BigQuery `class-hackaton-12`).
 
-## 🚀 Avvio Rapido
+## 🧱 Architettura e Componenti (`src/components/`)
+
+L'applicazione è strutturata in modo modulare con layout responsive a 2 sezioni (Tailwind CSS Grid & Flexbox):
+
+1. **Sezione Superiore (Split 2/3 - 1/3)**:
+   - [TopMetrics.jsx](file:///c:/Users/Windows%2010/Documents/Hackathon/MilanoFinanza/frontend/src/components/TopMetrics.jsx): widget e tabelle per **Dati Chiave**, **Momentum** (RSI, MACD, ROC), **Forza** (Forza Relativa vs FTSE MIB, ADX, OBV) e **Incertezza** (Volatilità Storica, News Dispersion, VaR).
+   - [NewsPanel.jsx](file:///c:/Users/Windows%2010/Documents/Hackathon/MilanoFinanza/frontend/src/components/NewsPanel.jsx): rassegna stampa con filtri rapidi, timestamp, ticker associato, badge di sentiment score e livello di impatto.
+
+2. **Sezione Inferiore (Simmetrica 1 col mobile / 2 col desktop)**:
+   - [PriceCandleChart.jsx](file:///c:/Users/Windows%2010/Documents/Hackathon/MilanoFinanza/frontend/src/components/PriceCandleChart.jsx): grafico a candele OHLC per i prezzi con istogramma dei volumi in overlay, basato su **TradingView Lightweight Charts v5**.
+   - [SentimentCandleChart.jsx](file:///c:/Users/Windows%2010/Documents/Hackathon/MilanoFinanza/frontend/src/components/SentimentCandleChart.jsx): grafico a candele e barre per l'analisi temporale dell'escursione del sentiment derivato dai testi e dagli embeddings delle notizie.
+
+## 📦 Dati Mock e Schemi BigQuery (`src/data/mockData.js`)
+
+Tutti i dati mock sono archiviati in locale in [mockData.js](file:///c:/Users/Windows%2010/Documents/Hackathon/MilanoFinanza/frontend/src/data/mockData.js) e riflettono fedelmente le tabelle BigQuery:
+- `financial_instruments.instruments_quotes`: partizionata su `DATA_QUOTAZ` (open, high, low, close, volume).
+- `news.articles`: partizionata su `data_modifica` (titolo, sommario, sentiment NLP).
+
+## 🚀 Avvio Locale
 
 ```bash
 cd frontend
 npm run dev
 ```
 
-L'applicazione sarà visibile su `http://localhost:5173`.
-
-## 📦 Struttura dei Dati Locali
-
-Tutti i dati visualizzati provengono da [src/data/localData.js](file:///c:/Users/Windows%2010/Documents/Hackathon/MilanoFinanza/frontend/src/data/localData.js), strutturati in conformità con gli schemi BigQuery descritti in `GEMINI.md`:
-
-- `news.articles`: `data_modifica`, `title`, `summary`, `body`, `sentiment`
-- `financial_instruments.instruments_quotes`: `DATA_QUOTAZ`, `ticker`, `open`, `high`, `low`, `close`, `volume`
-- `financial_instruments.instruments_info`: `ticker`, `name`, `isin`, `sector`, `market`
-
-### Come aggiornare i dati da Python:
-Puoi estrarre dati con BigQuery (rispettando il dry-run < 1 GB e le partizioni) e salvarli in locale come JSON. Basterà importare il file JSON o aggiornare `localData.js`.
+L'applicazione sarà disponibile su `http://localhost:5173`.
 
 ## ☁️ Deploy su Vercel
 
-Il progetto include già il file di configurazione [vercel.json](file:///c:/Users/Windows%2010/Documents/Hackathon/MilanoFinanza/frontend/vercel.json):
-
-1. Collega il repository a Vercel.
-2. Imposta la **Root Directory** su `frontend` nelle impostazioni del progetto su Vercel (oppure Vercel leggerà direttamente la build di Vite).
-3. Build command: `npm run build`
-4. Output directory: `dist`
-
-## 🛠️ Tecnologie Utilizzate
-- **React 18 + Vite**
-- **Recharts** per i grafici interattivi (prezzi e volumi)
-- **Lucide React** per l'iconografia
-- **Pure CSS / Design Tokens** con tema dark finanziario
+Configurato tramite [vercel.json](file:///c:/Users/Windows%2010/Documents/Hackathon/MilanoFinanza/frontend/vercel.json):
+- Build command: `npm run build`
+- Output directory: `dist`
