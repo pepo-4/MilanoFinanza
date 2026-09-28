@@ -31,12 +31,12 @@ export default function App() {
   const SHOW_TOP_METRICS = false;
 
   const tickersList = [
-    { code: 'UCG.MI', name: 'Unicredit', delta: '+1.85%', isUp: true },
-    { code: 'ENI.MI', name: 'Eni S.p.A.', delta: '+1.65%', isUp: true },
-    { code: 'ISP.MI', name: 'Intesa Sanpaolo', delta: '+0.48%', isUp: true },
-    { code: 'RACE.MI', name: 'Ferrari N.V.', delta: '-0.84%', isUp: false },
-    { code: 'ENEL.MI', name: 'Enel S.p.A.', delta: '+2.12%', isUp: true },
-    { code: 'STLAM.MI', name: 'Stellantis N.V.', delta: '-1.95%', isUp: false },
+    { code: 'UCG.MI', name: 'Unicredit' },
+    { code: 'ENI.MI', name: 'Eni S.p.A.' },
+    { code: 'ISP.MI', name: 'Intesa Sanpaolo' },
+    { code: 'RACE.MI', name: 'Ferrari N.V.' },
+    { code: 'ENEL.MI', name: 'Enel S.p.A.' },
+    { code: 'STLAM.MI', name: 'Stellantis N.V.' },
   ];
 
   const activeInstrument =
@@ -111,67 +111,72 @@ export default function App() {
           I DUE GRAFICI AFFIANCATI CON CONTROLLI SULLA DESTRA E SINCRONIZZAZIONE
          ========================================================================== */}
       <main className="flex-1 w-full max-w-[1780px] mx-auto flex flex-col justify-center">
-        {/* Barra superiore: Titolo a sinistra, Menu a tendina e Switch Tema a destra */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-3 px-1">
-          {/* Sinistra: Titolo del confronto e nome strumento attivo */}
-          <div className="flex items-center gap-2">
-            <span
-              className={`font-mono text-xs font-bold uppercase tracking-wider ${
-                isDark ? 'text-slate-300' : 'text-slate-800'
-              }`}
-            >
-              Chart Comparison · Milano Finanza
-            </span>
-            <span className="text-xs font-mono text-slate-500">
-              ({activeInstrument.name})
-            </span>
-            {selectedDate && (
-              <span className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono rounded bg-trade-accent/10 text-trade-accent border border-trade-accent/30">
-                <Crosshair size={11} /> Cursore sincronizzato
-              </span>
-            )}
-          </div>
-
-          {/* Destra: Menu a tendina del ticker + Switch Light/Dark Mode */}
-          <div className="flex items-center gap-2.5">
-            {/* Menu a tendina per la selezione del Ticker */}
-            <div className="relative inline-flex items-center">
-              <select
-                value={selectedTicker}
-                onChange={(e) => {
-                  setSelectedTicker(e.target.value);
-                  setSelectedDate(null);
-                }}
-                className={`appearance-none text-xs font-mono font-medium pl-3 pr-8 py-1.5 rounded-lg border transition-all cursor-pointer outline-none ${
-                  isDark
-                    ? 'bg-dark-850 text-slate-200 border-dark-700 hover:border-dark-600 focus:border-trade-accent'
-                    : 'bg-white text-slate-800 border-slate-300 hover:border-slate-400 focus:border-blue-500 shadow-sm'
+        {/* Barra superiore: Titolo e Menu Ticker a sinistra, Switch Tema a destra */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 px-1">
+          {/* Sinistra: Titolo in alto e Menu a Tendina Ticker posizionato direttamente al di sotto */}
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1
+                className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${
+                  isDark ? 'text-white' : 'text-slate-900'
                 }`}
               >
-                {tickersList.map((t) => (
-                  <option
-                    key={t.code}
-                    value={t.code}
-                    className={isDark ? 'bg-[#0b0f19] text-slate-200' : 'bg-white text-slate-800'}
-                  >
-                    {t.name} ({t.code}) {t.delta}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={14}
-                className={`absolute right-2.5 pointer-events-none ${
-                  isDark ? 'text-slate-400' : 'text-slate-500'
-                }`}
-              />
+                Chart Comparison{' '}
+                <span className="text-trade-accent font-black">·</span>{' '}
+                <span className={isDark ? 'text-slate-200' : 'text-slate-800'}>
+                  Milano Finanza
+                </span>
+              </h1>
+              {selectedDate && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono font-semibold rounded-lg bg-trade-accent/10 text-trade-accent border border-trade-accent/30 shadow-sm">
+                  <Crosshair size={13} /> Cursore sincronizzato
+                </span>
+              )}
             </div>
 
-            {/* Toggle Switch Light / Dark Mode */}
+            {/* Menu a tendina Ticker posizionato sotto al titolo + Badge Ticker Attivo ben visibile */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Menu a tendina per la selezione del Ticker */}
+              <div className="relative inline-flex items-center">
+                <select
+                  value={selectedTicker}
+                  onChange={(e) => {
+                    setSelectedTicker(e.target.value);
+                    setSelectedDate(null);
+                  }}
+                  className={`appearance-none text-xs font-mono font-bold pl-3 pr-8 py-2 rounded-xl border transition-all cursor-pointer outline-none shadow-sm ${
+                    isDark
+                      ? 'bg-dark-850 text-slate-100 border-dark-700 hover:border-slate-500 focus:border-trade-accent'
+                      : 'bg-white text-slate-900 border-slate-300 hover:border-slate-400 focus:border-blue-600'
+                  }`}
+                >
+                  {tickersList.map((t) => (
+                    <option
+                      key={t.code}
+                      value={t.code}
+                      className={isDark ? 'bg-[#0b0f19] text-slate-100' : 'bg-white text-slate-900'}
+                    >
+                      {t.name} ({t.code})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={15}
+                  className={`absolute right-2.5 pointer-events-none ${
+                    isDark ? 'text-slate-400' : 'text-slate-500'
+                  }`}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Destra: Switch Light / Dark Mode */}
+          <div className="flex items-center self-start sm:self-center">
             <button
               type="button"
               onClick={toggleTheme}
               title={isDark ? 'Attiva Tema Chiaro' : 'Attiva Tema Scuro'}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-medium border transition-all ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono font-semibold border transition-all ${
                 isDark
                   ? 'bg-dark-850 text-amber-400 border-dark-700 hover:bg-dark-750 hover:border-dark-600'
                   : 'bg-white text-indigo-600 border-slate-300 hover:bg-slate-50 hover:border-slate-400 shadow-sm'
@@ -179,13 +184,13 @@ export default function App() {
             >
               {isDark ? (
                 <>
-                  <Sun size={14} className="text-amber-400" />
-                  <span className="text-slate-300 text-[11px]">Light</span>
+                  <Sun size={15} className="text-amber-400" />
+                  <span className="text-slate-300 text-xs">Light Mode</span>
                 </>
               ) : (
                 <>
-                  <Moon size={14} className="text-indigo-600" />
-                  <span className="text-slate-700 text-[11px]">Dark</span>
+                  <Moon size={15} className="text-indigo-600" />
+                  <span className="text-slate-700 text-xs">Dark Mode</span>
                 </>
               )}
             </button>
