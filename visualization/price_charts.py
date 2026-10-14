@@ -30,10 +30,12 @@ def create_price_candlestick_figure(
     df: pd.DataFrame,
     ticker: str = "Azione",
     years: int = 5,
+    ma_window: int = 200,
     timeframe: str = "1W",
     theme: str = "plotly_dark",
     remove_weekends: Optional[bool] = None,
     use_candlesticks: bool = True,
+    **kwargs,
 ) -> go.Figure:
     """
     Costruisce la figura Plotly con 2 subplot:
@@ -43,8 +45,20 @@ def create_price_candlestick_figure(
     Parametri
     ---------
     df : pd.DataFrame
-        DataFrame pre-elaborato da analytics.indicators.prepare_stock_data.
+        DataFrame di quotazioni (già pre-elaborato o raw da BigQuery).
     """
+    # Se il DataFrame non è ancora pre-elaborato (es. mancano le colonne standard 'close' o 'ma_200')
+    if 'close' not in df.columns or 'ma_200' not in df.columns:
+        from analytics.indicators import prepare_stock_data
+        df = prepare_stock_data(
+            df,
+            ticker=ticker,
+            years=years,
+            ma_window=ma_window,
+            timeframe=timeframe,
+            **kwargs,
+        )
+
     is_weekly = str(timeframe).upper() in ['1W', 'W', 'WEEKLY', 'SETTIMANALE']
     freq_label = "Settimanale" if is_weekly else "Giornaliero"
 
