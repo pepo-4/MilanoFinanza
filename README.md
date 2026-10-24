@@ -1,117 +1,109 @@
-# MilanoFinanza · Hackathon
+# Milano Finanza · Sentiment & Market Intelligence Dashboard
 
-Analisi di notizie e quotazioni Milano Finanza su BigQuery (progetto `class-hackaton-12`).
+## Il progetto
 
-## Setup
+Per l’hackathon **Milano Finanza**, abbiamo sviluppato una dashboard che mette a
+confronto l’andamento di un titolo azionario con il sentiment espresso dalle
+notizie pubblicate sullo stesso titolo.
 
-### 1. Autenticazione Google Cloud
+L’obiettivo non è mostrare due serie temporali separate, ma rendere leggibile la
+relazione tra mercato e informazione: la dashboard evidenzia quando prezzo e
+sentiment si muovono nella stessa direzione, quando divergono e quando il
+segnale informativo può essere in ritardo rispetto al movimento del titolo.
 
-Serve la [gcloud CLI](https://cloud.google.com/sdk/docs/install). Poi:
+Il prototipo è attualmente configurato su **UniCredit (UCG.MI)** e usa dati
+settimanali per costruire una vista storica coerente tra quotazioni, volumi,
+notizie e indicatori.
 
-```bash
-gcloud auth login                                  # login utente per la CLI (bq, gcloud)
-gcloud auth application-default login              # credenziali usate dalle librerie Python
-gcloud config set project class-hackaton-12
-```
+## Cosa mostra la dashboard
 
-Opzionale, per togliere l'avviso "without a quota project":
+### Prezzo e sentiment sincronizzati
 
-```bash
-gcloud auth application-default set-quota-project class-hackaton-12
-```
+La vista principale presenta due grafici affiancati con la stessa scala
+temporale:
 
-Verifica:
+- **Prezzo**: media settimanale, banda di variabilità pari a ±1 deviazione
+  standard e volumi con colore coerente con la direzione del movimento;
+- **Sentiment**: media settimanale del sentiment delle notizie, banda ±1
+  deviazione standard e numero di notizie pubblicate;
+- **selezione condivisa**: cliccando una settimana si aggiorna il punto
+  corrispondente su entrambi i grafici e vengono mostrati prezzo, sentiment,
+  variabilità, volume e numero di notizie.
 
-```bash
-bq ls --project_id=class-hackaton-12               # deve mostrare i dataset news e financial_instruments
-```
+![Vista principale: prezzo e sentiment di UniCredit](docs/dashboard-overview.png)
 
-### 2. Ambiente Python
+### Indicatori gemelli
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+Per rendere confrontabili le due serie, calcoliamo gli stessi indicatori sia
+per il prezzo sia per il sentiment:
 
-Se su Ubuntu/Debian `python3 -m venv` fallisce per `ensurepip`, installa `python3-venv` (`sudo apt install python3-venv`) oppure usa [uv](https://docs.astral.sh/uv/):
+| Indicatore | Interpretazione |
+| --- | --- |
+| **Momentum** | Scostamento dalla media mobile a 26 settimane, espresso in deviazioni standard |
+| **Forza** | RSI a 14 settimane, adattato alla serie osservata |
+| **Pressione** | Quota del volume associata alle settimane in rialzo, su una finestra di 13 settimane |
+| **Incertezza** | ATR a 8 settimane confrontato con la media annuale |
 
-```bash
-uv venv .venv --seed
-uv pip install --python .venv/bin/python -r requirements.txt
-```
+Ogni indicatore viene riportato su una scala comune **Fear & Greed (0–100)**.
+Questo permette di confrontare, ad esempio, un momentum elevato del prezzo con
+un sentiment ancora neutro o negativo.
 
-### 3. nbstripout (obbligatorio)
+![Fear & Greed Index per prezzo e sentiment](docs/fear-greed-index.png)
 
-Gli output dei notebook contengono testo delle notizie, che non deve finire nei commit. Dopo ogni clone:
+![I quattro indicatori applicati a prezzo e sentiment](docs/indicators.png)
 
-```bash
-.venv/bin/nbstripout --install --attributes .gitattributes
-.venv/bin/nbstripout --status                      # deve dire "nbstripout is installed"
-```
+### Correlazione e divergenze
 
-### 4. Kernel Jupyter
+La dashboard calcola inoltre correlazioni mobili a 13 settimane tra:
 
-```bash
-.venv/bin/python -m ipykernel install --user --name mf-hackathon --display-name "Python (MF hackathon)"
-jupyter lab                                        # oppure apri i notebook da VS Code scegliendo .venv
-```
+- rendimento del titolo e sentiment medio delle notizie;
+- indice sintetico Fear & Greed del prezzo e indice Fear & Greed del sentiment.
 
-Primo test: esegui `notebooks/00_test_bigquery.ipynb` dall'inizio alla fine. Deve stampare dataset, schemi e l'ultima notizia.
+![Correlazione e divergenza tra prezzo e sentiment](docs/divergence.png)
 
-## Branch di lavoro
+Le aree in cui le serie risultano **opposte** o poco correlate sono i punti più
+interessanti da investigare. Una divergenza può rappresentare, per esempio:
 
-Ognuno lavora sul proprio branch; `main` si aggiorna solo tramite merge/pull request.
+- un possibile segnale anticipatore del sentiment rispetto al prezzo;
+- una reazione del mercato non ancora riflessa nella rassegna stampa;
+- un ritardo nella pubblicazione o nella percezione delle notizie;
+- una fase di incertezza in cui prezzo e informazione non confermano la stessa
+  direzione.
 
-| Persona | Branch |
-|---|---|
-| Giuseppe Allocca | `giuseppe-allocca` |
-| Matteo Bottari | `matteo-bottari` |
-| Edoardo Coli | `edoardo-coli` |
-| Jacopo Ferrante | `jacopo-ferrante` |
-| Giuseppe Leogrande | `giuseppe-leogrande` |
+Questi eventi sono quindi **segnali informativi per l’analisi**, non
+raccomandazioni automatiche di acquisto o vendita.
 
-### Primo accesso
+## Dati e pipeline analitica
 
-```bash
-git clone https://github.com/pepo-4/MilanoFinanza.git
-cd MilanoFinanza
+Il progetto combina due fonti principali:
 
-# identità git solo per questa repo (usa i tuoi dati)
-git config user.name "Nome Cognome"
-git config user.email "tua@email.it"
+1. **Quotazioni del titolo**: valori OHLC, prezzo medio, volumi e variazione nel
+   tempo;
+2. **Rassegna stampa**: articoli associati al titolo, aggregati per settimana e
+   trasformati in uno score di sentiment.
 
-# passa al tuo branch (es. matteo-bottari)
-git switch matteo-bottari
-```
+La pipeline aggrega le osservazioni sulla stessa frequenza temporale, calcola
+gli indicatori tecnici per entrambe le serie, normalizza i risultati sulla scala
+Fear & Greed e li porta nella dashboard con una timeline condivisa.
 
-Poi completa il [Setup](#setup) (venv, nbstripout, kernel).
+## Risultato
 
-### Lavoro quotidiano
+Il risultato è un prototipo di **market intelligence** che unisce analisi
+quantitativa e lettura dell’informazione finanziaria in un’unica interfaccia.
+Invece di limitarsi a classificare una notizia come positiva o negativa, il
+progetto prova a rispondere a una domanda più utile per l’analista:
 
-```bash
-git switch <tuo-branch>                  # assicurati di essere sul tuo branch
-git branch --show-current                # verifica
+> *Il mercato e il sentiment stanno raccontando la stessa storia? Se non lo
+> fanno, quando e quanto è significativa la divergenza?*
 
-git pull                                 # prendi le ultime modifiche del tuo branch
-git merge origin/main                    # (opzionale) porta nel tuo branch le novità di main
+## Struttura del progetto
 
-git add <file>
-git commit -m "descrizione"
-git push                                 # il branch è già collegato a origin/<tuo-branch>
-```
+- [`frontend/`](frontend/) — dashboard React/Vite e componenti dei grafici;
+- [`indicatori/`](indicatori/) — calcolo e verifica degli indicatori;
+- [`scripts/`](scripts/) — preparazione ed esportazione dei dati per il frontend;
+- [`notebooks/`](notebooks/) — analisi esplorative e accesso ai dati;
+- [`data/`](data/) — dati locali utilizzati dal progetto.
 
-Se `git switch <tuo-branch>` dice che il branch non esiste, aggiorna prima l'elenco dei branch remoti con `git fetch origin`.
-
-## Regole d'uso di BigQuery
-
-La quota è limitata e si pagano i **byte letti** (`LIMIT` non riduce il costo). Le regole complete sono in [CLAUDE.md](CLAUDE.md); in breve:
-
-- leggi lo schema prima di scrivere query (gratuito);
-- mai `SELECT *`;
-- filtra sempre sulla colonna di partizione (`news.articles.data_modifica`, `instruments_quotes.DATA_QUOTAZ`);
-- dry run prima di ogni query; oltre 1 GB serve conferma (le funzioni `dry_run` / `run_query` del notebook 00 lo fanno già).
-
-## Dati e riservatezza
-
-Non committare credenziali, `.env` o dati estratti: sono contenuti protetti di Milano Finanza. Salva i dati locali in `data/`, che è esclusa da git.
+> **Nota:** il progetto ha finalità dimostrative e di ricerca per l’hackathon.
+> Gli indicatori e le divergenze visualizzati non costituiscono consulenza
+> finanziaria né una garanzia sull’andamento futuro del titolo.
